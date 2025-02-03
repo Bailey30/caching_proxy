@@ -1,9 +1,7 @@
 from typing import List, Tuple
 
-# Define a custom type for a tuple containing two strings
 EndpointData = Tuple[str, str]
 
-# Define a custom type for a list of such tuples
 EndpointBucket = List[EndpointData]
 
 
@@ -11,11 +9,11 @@ class Cache:
     size: int
     buckets: List[EndpointBucket]
 
-    def __init__(self, size=100) -> None:
+    def __init__(self, size: int = 100) -> None:
         self.size = size
         self.buckets = [[] for _ in range(size)]
 
-    def hash_function(self, key) -> int:
+    def hash_function(self, key: str) -> int:
         """
         Creates an index key for the item being added or searched for.
         In theory is evenly distributes items throughout the buckets.
@@ -26,7 +24,7 @@ class Cache:
 
         return sum_of_chars % self.size
 
-    def put(self, key, value) -> None:
+    def put(self, key: str, value: str) -> None:
         hash_index = self.hash_function(key)
         bucket = self.buckets[hash_index]
 
@@ -39,7 +37,7 @@ class Cache:
         # Adding a new value to hash table.
         self.buckets[hash_index].append((key, value))
 
-    def get(self, key) -> str | None:
+    def get(self, key: str) -> str | None:
         hash_index = self.hash_function(key)
         bucket = self.buckets[hash_index]
 

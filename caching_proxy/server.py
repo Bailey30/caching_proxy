@@ -1,10 +1,14 @@
 import requests
+from flask import Flask, make_response
+from flask.wrappers import Response
+from requests.models import CaseInsensitiveDict
+from typing import Any
+
 from .cache import Cache
-from flask import Flask, request, make_response
 
 
 class Server:
-    def __init__(self, port, origin, cache: Cache):
+    def __init__(self, port: int, origin: str, cache: Cache) -> None:
         self.server = Flask(__name__)
         self.port = port
         self.origin = origin
@@ -12,7 +16,7 @@ class Server:
 
         self.start()
 
-    def start(self):
+    def start(self) -> None:
         self.server.add_url_rule(
             "/",
             view_func=self.handle_request,
@@ -23,10 +27,7 @@ class Server:
         )
         self.server.run(port=self.port)
 
-    def handle_request(self, path):
-        print(path)
-        print("request: ", request)
-
+    def handle_request(self, path: str) -> Response:
         cached_response = self.cache.get(path)
 
         if cached_response:
@@ -48,7 +49,9 @@ class Server:
             origin_response.content, origin_response.headers, "MISS"
         )
 
-    def response_with_headers(self, data, headers, cache_header):
+    def response_with_headers(
+        self, data: bytes | Any, headers: CaseInsensitiveDict | dict, cache_header: str
+    ) -> Response:
         response = make_response(data)
 
         # These headers might cause issues if forwarded directly.
