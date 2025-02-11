@@ -1,6 +1,6 @@
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
-EndpointData = Tuple[str, str]
+EndpointData = Tuple[str, Dict[str, str | Dict[str, str]]]
 
 EndpointBucket = List[EndpointData]
 
@@ -24,12 +24,12 @@ class Cache:
 
         return sum_of_chars % self.size
 
-    def put(self, key: str, value: str) -> None:
+    def put(self, key: str, value: dict) -> None:
         hash_index = self.hash_function(key)
         bucket = self.buckets[hash_index]
 
         # Check for an existing value to update.
-        for i, (k, v) in enumerate(bucket):
+        for i, (k, _) in enumerate(bucket):
             if k == key:
                 bucket[i] = (key, value)
                 return
@@ -37,14 +37,14 @@ class Cache:
         # Adding a new value to hash table.
         self.buckets[hash_index].append((key, value))
 
-    def get(self, key: str) -> str | None:
+    def get(self, key: str) -> dict | None:
         hash_index = self.hash_function(key)
         bucket = self.buckets[hash_index]
 
         # Search for a value in the bucket.
         found = next(((k, v) for (k, v) in bucket if k == key), None)
 
-        return found[0] if found else None
+        return found[1] if found else None
 
     def print_map(self) -> None:
         print("Hash map contents:")

@@ -1,5 +1,6 @@
 import requests
-from flask import Flask, make_response
+import logging
+from flask import Flask, jsonify, make_response
 from flask.wrappers import Response
 from requests.models import CaseInsensitiveDict
 from typing import Any
@@ -7,47 +8,59 @@ from typing import Any
 from .cache import Cache
 
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
 class Server:
-    def __init__(self, port: int, origin: str, cache: Cache) -> None:
+    server: Flask
+    port: str
+    origin: str
+    cache: Cache
+
+    def __init__(self, port: str, origin: str, cache: Cache) -> None:
         self.server = Flask(__name__)
         self.port = port
         self.origin = origin
         self.cache = cache
 
-        self.start()
-
-    def start(self) -> None:
         self.server.add_url_rule(
-            "/",
-            view_func=self.handle_request,
-            defaults={"path": ""},
+            "/", view_func=self.handle_request, defaults={"path": ""}
         )
         self.server.add_url_rule(
             "/<path:path>", endpoint="handle_route", view_func=self.handle_request
         )
-        self.server.run(port=self.port)
+        # self.sdfgs
+
+    def start(self) -> None:
+        self.server.run(port=int(self.port), threaded=True)
 
     def handle_request(self, path: str) -> Response:
+        # First, search for a cached response and handle that.
         cached_response = self.cache.get(path)
 
         if cached_response:
-            return self.response_with_headers(cached_response, {}, "HIT")
+            return self.response_with_headers(
+                cached_response["json"], cached_response["headers"], "HIT"
+            )
 
+        # If no cached response, make the api request
         origin_response = requests.get(f"{self.origin}/{path}")
 
         try:
             json_data = origin_response.json()
+            self.cache.put(
+                path, {"json": json_data, "headers": origin_response.headers}
+            )
+            return self.response_with_headers(
+                jsonify(json_data), origin_response.headers, "MISS"
+            )
         except ValueError:
-            print("Warning: Origin response is not valid JSON.")
+            logger.warning("Warning: Origin response is not valid JSON.")
             json_data = None
-
-        # Optionally cache the JSON response if it's valid
-        if json_data is not None:
-            self.cache.put(path, json_data)
-
-        return self.response_with_headers(
-            origin_response.content, origin_response.headers, "MISS"
-        )
+            return self.response_with_headers(
+                origin_response.content, origin_response.headers, "MISS"
+            )
 
     def response_with_headers(
         self, data: bytes | Any, headers: CaseInsensitiveDict | dict, cache_header: str
@@ -67,5 +80,7 @@ class Server:
                 response.headers[header] = value
 
         response.headers["X-Cache"] = cache_header
+
+        print("fdfssdf")
 
         return response
